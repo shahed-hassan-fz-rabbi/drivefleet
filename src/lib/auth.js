@@ -1,8 +1,9 @@
 import { betterAuth } from "better-auth";
 import { mongodbAdapter } from "@better-auth/mongo-adapter";
-import clientPromise from "./mongodb";
+import { MongoClient } from "mongodb";
 
-const client = await clientPromise;
+const client = new MongoClient(process.env.MONGODB_URI);
+await client.connect();
 const db = client.db("drivefleet");
 
 export const auth = betterAuth({
@@ -19,7 +20,7 @@ export const auth = betterAuth({
   session: {
     cookieCache: {
       enabled: true,
-      maxAge: 60 * 60 * 24 * 7, // 7 days
+      maxAge: 60 * 60 * 24 * 7,
     },
   },
 });
