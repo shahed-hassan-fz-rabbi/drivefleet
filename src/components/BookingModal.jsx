@@ -4,24 +4,38 @@ import { useState } from "react";
 import { X, Car, Calendar } from "lucide-react";
 import toast from "react-hot-toast";
 import { motion } from "framer-motion";
+import axiosInstance from "@/lib/axios";
 
-const BookingModal = ({ car, onClose }) => {
+const BookingModal = ({ car, onClose, onSuccess }) => {
   const [form, setForm] = useState({
     driverNeeded: "no",
     specialNote: "",
   });
   const [loading, setLoading] = useState(false);
 
+  const totalPrice =
+    form.driverNeeded === "yes" ? car.dailyPrice + 20 : car.dailyPrice;
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
 
-    // পরে server API call এখানে আসবে
-    setTimeout(() => {
+    try {
+      await axiosInstance.post("/api/bookings", {
+        carId: car._id,
+        driverNeeded: form.driverNeeded,
+        specialNote: form.specialNote,
+        totalPrice,
+      });
+
       toast.success("Car booked successfully!");
-      setLoading(false);
+      onSuccess?.();
       onClose();
-    }, 1000);
+    } catch (error) {
+      toast.error(error.response?.data?.message || "Booking failed");
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -32,7 +46,6 @@ const BookingModal = ({ car, onClose }) => {
         transition={{ duration: 0.3 }}
         className="bg-white rounded-3xl shadow-2xl w-full max-w-md p-6"
       >
-        {/* Header */}
         <div className="flex items-center justify-between mb-6">
           <h2 className="text-2xl font-bold text-gray-900">Book Car</h2>
           <button
@@ -43,7 +56,6 @@ const BookingModal = ({ car, onClose }) => {
           </button>
         </div>
 
-        {/* Car info */}
         <div className="flex items-center gap-4 bg-blue-50 rounded-2xl p-4 mb-6">
           <img
             src={car.image}
@@ -57,7 +69,6 @@ const BookingModal = ({ car, onClose }) => {
           </div>
         </div>
 
-        {/* Booking date */}
         <div className="flex items-center gap-2 text-sm text-gray-500 mb-6 bg-gray-50 rounded-xl p-3">
           <Calendar size={16} className="text-blue-500" />
           <span>Booking Date: </span>
@@ -72,7 +83,6 @@ const BookingModal = ({ car, onClose }) => {
 
         <form onSubmit={handleSubmit} className="space-y-5">
 
-          {/* Driver Needed */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
               Driver Needed?
@@ -93,10 +103,7 @@ const BookingModal = ({ car, onClose }) => {
                     value={opt}
                     checked={form.driverNeeded === opt}
                     onChange={(e) =>
-                      setForm((prev) => ({
-                        ...prev,
-                        driverNeeded: e.target.value,
-                      }))
+                      setForm((prev) => ({ ...prev, driverNeeded: e.target.value }))
                     }
                     className="hidden"
                   />
@@ -106,7 +113,6 @@ const BookingModal = ({ car, onClose }) => {
             </div>
           </div>
 
-          {/* Special Note */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1.5">
               Special Note (optional)
@@ -116,13 +122,12 @@ const BookingModal = ({ car, onClose }) => {
               onChange={(e) =>
                 setForm((prev) => ({ ...prev, specialNote: e.target.value }))
               }
-              placeholder="Any special requirements or notes..."
+              placeholder="Any special requirements..."
               rows={3}
-              className="w-full px-4 py-3 border-2 border-gray-200 rounded-2xl focus:outline-none focus:border-blue-500 transition-all duration-300 text-gray-800 resize-none"
+              className="w-full px-4 py-3 border-2 border-gray-200 rounded-2xl focus:outline-none focus:border-blue-500 transition-all resize-none"
             />
           </div>
 
-          {/* Price summary */}
           <div className="bg-gray-50 rounded-2xl p-4">
             <div className="flex justify-between text-sm text-gray-500 mb-1">
               <span>Daily Rate</span>
@@ -136,16 +141,14 @@ const BookingModal = ({ car, onClose }) => {
             )}
             <div className="flex justify-between font-bold text-gray-800 border-t border-gray-200 pt-2 mt-2">
               <span>Total/day</span>
-              <span className="text-blue-600">
-                ${form.driverNeeded === "yes" ? car.dailyPrice + 20 : car.dailyPrice}
-              </span>
+              <span className="text-blue-600">${totalPrice}</span>
             </div>
           </div>
 
           <button
             type="submit"
             disabled={loading}
-            className="w-full py-4 bg-blue-600 text-white rounded-2xl font-semibold hover:bg-blue-700 transition-all duration-300 shadow-lg disabled:opacity-60 flex items-center justify-center gap-2"
+            className="w-full py-4 bg-blue-600 text-white rounded-2xl font-semibold hover:bg-blue-700 transition-all shadow-lg disabled:opacity-60 flex items-center justify-center gap-2"
           >
             {loading ? (
               <span className="loading loading-spinner loading-sm"></span>

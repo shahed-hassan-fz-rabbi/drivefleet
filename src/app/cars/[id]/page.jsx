@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "use";
+import { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { MapPin, Users, Fuel, Calendar, Shield, ArrowLeft } from "lucide-react";
 import Link from "next/link";
@@ -8,133 +8,30 @@ import { motion } from "framer-motion";
 import useAuth from "@/hooks/useAuth";
 import BookingModal from "@/components/BookingModal";
 import toast from "react-hot-toast";
-
-const dummyCars = [
-  {
-    _id: "1",
-    name: "Toyota Camry",
-    type: "Sedan",
-    dailyPrice: 45,
-    seats: 5,
-    location: "Dhaka",
-    fuel: "Petrol",
-    description: "A reliable and comfortable sedan perfect for city drives and long trips. Features modern interior, smooth ride, and excellent fuel efficiency.",
-    image: "https://images.unsplash.com/photo-1621007947382-bb3c3994e3fb?w=800&q=80",
-    available: true,
-    bookingCount: 12,
-  },
-  {
-    _id: "2",
-    name: "Honda CR-V",
-    type: "SUV",
-    dailyPrice: 65,
-    seats: 7,
-    location: "Chittagong",
-    fuel: "Hybrid",
-    description: "Spacious and fuel-efficient SUV with hybrid technology. Perfect for family trips with ample cargo space and advanced safety features.",
-    image: "https://images.unsplash.com/photo-1606664515524-ed2f786a0bd6?w=800&q=80",
-    available: true,
-    bookingCount: 8,
-  },
-  {
-    _id: "3",
-    name: "BMW 3 Series",
-    type: "Luxury",
-    dailyPrice: 120,
-    seats: 5,
-    location: "Dhaka",
-    fuel: "Petrol",
-    description: "Experience ultimate luxury and performance with this iconic BMW. Features premium leather interior, powerful engine, and cutting-edge technology.",
-    image: "https://images.unsplash.com/photo-1555215695-3004980ad54e?w=800&q=80",
-    available: true,
-    bookingCount: 5,
-  },
-  {
-    _id: "4",
-    name: "Toyota Hiace",
-    type: "Van",
-    dailyPrice: 80,
-    seats: 12,
-    location: "Sylhet",
-    fuel: "Diesel",
-    description: "Ideal for group travel with spacious seating for up to 12 passengers. Reliable diesel engine and comfortable ride for long journeys.",
-    image: "https://images.unsplash.com/photo-1609521263047-f8f205293f24?w=800&q=80",
-    available: true,
-    bookingCount: 15,
-  },
-  {
-    _id: "5",
-    name: "Hyundai Tucson",
-    type: "SUV",
-    dailyPrice: 70,
-    seats: 5,
-    location: "Dhaka",
-    fuel: "Petrol",
-    description: "Modern SUV with stylish design and advanced features. Great for both city driving and highway travel with comfortable seating.",
-    image: "https://images.unsplash.com/photo-1572635196237-14b3f281503f?w=800&q=80",
-    available: false,
-    bookingCount: 3,
-  },
-  {
-    _id: "6",
-    name: "Mercedes C-Class",
-    type: "Luxury",
-    dailyPrice: 150,
-    seats: 5,
-    location: "Dhaka",
-    fuel: "Petrol",
-    description: "The pinnacle of luxury motoring. Enjoy premium comfort, advanced technology, and superior performance in this iconic Mercedes-Benz.",
-    image: "https://images.unsplash.com/photo-1618843479313-40f8afb4b4d8?w=800&q=80",
-    available: true,
-    bookingCount: 7,
-  },
-  {
-    _id: "7",
-    name: "Toyota Corolla",
-    type: "Sedan",
-    dailyPrice: 40,
-    seats: 5,
-    location: "Rajshahi",
-    fuel: "Petrol",
-    description: "The world's best-selling car for good reason. Reliable, economical, and comfortable with excellent resale value.",
-    image: "https://images.unsplash.com/photo-1549317661-bd32c8ce0db2?w=800&q=80",
-    available: true,
-    bookingCount: 20,
-  },
-  {
-    _id: "8",
-    name: "Ford Ranger",
-    type: "Pickup",
-    dailyPrice: 90,
-    seats: 5,
-    location: "Chittagong",
-    fuel: "Diesel",
-    description: "Tough and capable pickup truck perfect for both work and adventure. Features powerful diesel engine and impressive towing capacity.",
-    image: "https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=800&q=80",
-    available: true,
-    bookingCount: 11,
-  },
-];
+import axiosInstance from "@/lib/axios";
 
 const CarDetailsPage = () => {
   const { id } = useParams();
   const { user } = useAuth();
   const router = useRouter();
+  const [car, setCar] = useState(null);
+  const [loading, setLoading] = useState(true);
   const [bookingOpen, setBookingOpen] = useState(false);
 
-  const car = dummyCars.find((c) => c._id === id);
-
-  if (!car) {
-    return (
-      <div className="min-h-screen flex flex-col items-center justify-center gap-4">
-        <p className="text-5xl">🚗</p>
-        <h2 className="text-2xl font-bold text-gray-700">Car not found</h2>
-        <Link href="/cars" className="btn btn-primary rounded-full">
-          Back to Cars
-        </Link>
-      </div>
-    );
-  }
+  useEffect(() => {
+    const fetchCar = async () => {
+      try {
+        const res = await axiosInstance.get(`/api/cars/${id}`);
+        setCar(res.data);
+      } catch (error) {
+        toast.error("Car not found");
+        router.push("/cars");
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchCar();
+  }, [id]);
 
   const handleBookNow = () => {
     if (!user) {
@@ -145,11 +42,30 @@ const CarDetailsPage = () => {
     setBookingOpen(true);
   };
 
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-50 py-10">
+        <div className="max-w-6xl mx-auto px-4">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 animate-pulse">
+            <div className="h-96 bg-gray-200 rounded-3xl"></div>
+            <div className="space-y-4">
+              <div className="h-10 bg-gray-200 rounded-xl w-3/4"></div>
+              <div className="h-6 bg-gray-200 rounded-xl w-1/2"></div>
+              <div className="h-32 bg-gray-200 rounded-xl"></div>
+              <div className="h-14 bg-gray-200 rounded-2xl"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (!car) return null;
+
   return (
     <div className="min-h-screen bg-gray-50 py-10">
       <div className="max-w-6xl mx-auto px-4 lg:px-8">
 
-        {/* Back button */}
         <Link
           href="/cars"
           className="inline-flex items-center gap-2 text-blue-600 font-medium hover:gap-3 transition-all duration-300 mb-6"
@@ -160,7 +76,7 @@ const CarDetailsPage = () => {
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-10">
 
-          {/* Left — Image */}
+          {/* Left */}
           <motion.div
             initial={{ opacity: 0, x: -30 }}
             animate={{ opacity: 1, x: 0 }}
@@ -188,7 +104,6 @@ const CarDetailsPage = () => {
               </div>
             </div>
 
-            {/* Stats */}
             <div className="grid grid-cols-3 gap-4 mt-4">
               <div className="bg-white rounded-2xl p-4 text-center shadow-sm">
                 <Users size={22} className="text-blue-600 mx-auto mb-1" />
@@ -208,7 +123,7 @@ const CarDetailsPage = () => {
             </div>
           </motion.div>
 
-          {/* Right — Details */}
+          {/* Right */}
           <motion.div
             initial={{ opacity: 0, x: 30 }}
             animate={{ opacity: 1, x: 0 }}
@@ -216,9 +131,7 @@ const CarDetailsPage = () => {
             className="space-y-6"
           >
             <div>
-              <h1 className="text-4xl font-bold text-gray-900 mb-2">
-                {car.name}
-              </h1>
+              <h1 className="text-4xl font-bold text-gray-900 mb-2">{car.name}</h1>
               <div className="flex items-center gap-2 text-gray-500">
                 <MapPin size={16} className="text-blue-500" />
                 <span>{car.location}</span>
@@ -234,30 +147,22 @@ const CarDetailsPage = () => {
             </div>
 
             <div>
-              <h3 className="text-lg font-semibold text-gray-800 mb-2">
-                Description
-              </h3>
-              <p className="text-gray-600 leading-relaxed">
-                {car.description}
-              </p>
+              <h3 className="text-lg font-semibold text-gray-800 mb-2">Description</h3>
+              <p className="text-gray-600 leading-relaxed">{car.description}</p>
             </div>
 
             <div className="flex items-center gap-3 bg-green-50 rounded-2xl p-4">
               <Shield size={22} className="text-green-600" />
               <div>
-                <p className="font-semibold text-gray-800 text-sm">
-                  Fully Insured
-                </p>
-                <p className="text-xs text-gray-500">
-                  All vehicles are covered with comprehensive insurance
-                </p>
+                <p className="font-semibold text-gray-800 text-sm">Fully Insured</p>
+                <p className="text-xs text-gray-500">All vehicles are covered</p>
               </div>
             </div>
 
             <button
               onClick={handleBookNow}
               disabled={!car.available}
-              className="w-full py-4 bg-blue-600 text-white rounded-2xl font-semibold text-lg hover:bg-blue-700 transition-all duration-300 shadow-lg hover:shadow-blue-200 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-full py-4 bg-blue-600 text-white rounded-2xl font-semibold text-lg hover:bg-blue-700 transition-all duration-300 shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {car.available ? "Book Now" : "Not Available"}
             </button>
@@ -275,11 +180,16 @@ const CarDetailsPage = () => {
         </div>
       </div>
 
-      {/* Booking Modal */}
       {bookingOpen && (
         <BookingModal
           car={car}
           onClose={() => setBookingOpen(false)}
+          onSuccess={() => {
+            setCar((prev) => ({
+              ...prev,
+              bookingCount: prev.bookingCount + 1,
+            }));
+          }}
         />
       )}
     </div>

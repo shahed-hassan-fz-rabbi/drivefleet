@@ -1,24 +1,15 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { Car, MapPin, Users, Fuel, DollarSign, Image, FileText, ArrowLeft } from "lucide-react";
+import {
+  Car, MapPin, Users, Fuel,
+  DollarSign, FileText, ArrowLeft
+} from "lucide-react";
 import toast from "react-hot-toast";
 import { motion } from "framer-motion";
 import Link from "next/link";
-
-const dummyCar = {
-  _id: "1",
-  name: "Toyota Camry",
-  type: "Sedan",
-  dailyPrice: 45,
-  seats: 5,
-  location: "Dhaka",
-  fuel: "Petrol",
-  description: "A reliable and comfortable sedan.",
-  image: "https://images.unsplash.com/photo-1621007947382-bb3c3994e3fb?w=400&q=80",
-  available: true,
-};
+import axiosInstance from "@/lib/axios";
 
 const carTypes = ["Sedan", "SUV", "Hatchback", "Luxury", "Van", "Pickup"];
 
@@ -26,19 +17,45 @@ const UpdateCarPage = () => {
   const { id } = useParams();
   const router = useRouter();
   const [loading, setLoading] = useState(false);
-
-  // পরে server থেকে real data আসবে id দিয়ে
+  const [fetching, setFetching] = useState(true);
   const [form, setForm] = useState({
-    name: dummyCar.name,
-    dailyPrice: dummyCar.dailyPrice,
-    type: dummyCar.type,
-    image: dummyCar.image,
-    seats: dummyCar.seats,
-    location: dummyCar.location,
-    description: dummyCar.description,
-    available: dummyCar.available,
-    fuel: dummyCar.fuel,
+    name: "",
+    dailyPrice: "",
+    type: "Sedan",
+    image: "",
+    seats: "",
+    location: "",
+    description: "",
+    available: true,
+    fuel: "Petrol",
   });
+
+  // Real data fetch
+  useEffect(() => {
+    const fetchCar = async () => {
+      try {
+        const res = await axiosInstance.get(`/api/cars/${id}`);
+        const car = res.data;
+        setForm({
+          name: car.name,
+          dailyPrice: car.dailyPrice,
+          type: car.type,
+          image: car.image,
+          seats: car.seats,
+          location: car.location,
+          description: car.description,
+          available: car.available,
+          fuel: car.fuel,
+        });
+      } catch (error) {
+        toast.error("Failed to load car data");
+        router.push("/my-added-cars");
+      } finally {
+        setFetching(false);
+      }
+    };
+    fetchCar();
+  }, [id]);
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
@@ -51,14 +68,28 @@ const UpdateCarPage = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
-
-    // পরে server API call আসবে
-    setTimeout(() => {
+    try {
+      await axiosInstance.put(`/api/cars/${id}`, {
+        ...form,
+        dailyPrice: Number(form.dailyPrice),
+        seats: Number(form.seats),
+      });
       toast.success("Car updated successfully!");
-      setLoading(false);
       router.push("/my-added-cars");
-    }, 1000);
+    } catch (error) {
+      toast.error(error.response?.data?.message || "Update failed");
+    } finally {
+      setLoading(false);
+    }
   };
+
+  if (fetching) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <span className="loading loading-spinner loading-lg text-blue-600"></span>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gray-50 py-10">
@@ -84,7 +115,7 @@ const UpdateCarPage = () => {
             </div>
             <div>
               <h1 className="text-3xl font-bold text-gray-900">Update Car</h1>
-              <p className="text-gray-500 text-sm">Edit your car listing details</p>
+              <p className="text-gray-500 text-sm">Edit your car listing</p>
             </div>
           </div>
 
@@ -125,7 +156,6 @@ const UpdateCarPage = () => {
                   />
                 </div>
               </div>
-
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1.5">
                   Car Type
@@ -161,7 +191,6 @@ const UpdateCarPage = () => {
                   />
                 </div>
               </div>
-
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1.5">
                   Fuel Type
@@ -174,11 +203,11 @@ const UpdateCarPage = () => {
                     onChange={handleChange}
                     className="w-full pl-11 pr-4 py-3 border-2 border-gray-200 rounded-2xl focus:outline-none focus:border-blue-500 transition-all bg-white"
                   >
-                    <option value="Petrol">Petrol</option>
-                    <option value="Diesel">Diesel</option>
-                    <option value="Hybrid">Hybrid</option>
-                    <option value="Electric">Electric</option>
-                    <option value="CNG">CNG</option>
+                    <option>Petrol</option>
+                    <option>Diesel</option>
+                    <option>Hybrid</option>
+                    <option>Electric</option>
+                    <option>CNG</option>
                   </select>
                 </div>
               </div>
@@ -188,24 +217,21 @@ const UpdateCarPage = () => {
               <label className="block text-sm font-medium text-gray-700 mb-1.5">
                 Image URL
               </label>
-              <div className="relative">
-                <Image size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" />
-                <input
-                  type="url"
-                  name="image"
-                  value={form.image}
-                  onChange={handleChange}
-                  required
-                  className="w-full pl-11 pr-4 py-3 border-2 border-gray-200 rounded-2xl focus:outline-none focus:border-blue-500 transition-all"
-                />
-              </div>
+              <input
+                type="url"
+                name="image"
+                value={form.image}
+                onChange={handleChange}
+                required
+                className="w-full px-4 py-3 border-2 border-gray-200 rounded-2xl focus:outline-none focus:border-blue-500 transition-all"
+              />
               {form.image && (
                 <div className="mt-3 rounded-2xl overflow-hidden h-40">
                   <img
                     src={form.image}
                     alt="preview"
                     className="w-full h-full object-cover"
-                    onError={(e) => e.target.style.display = "none"}
+                    onError={(e) => (e.target.style.display = "none")}
                   />
                 </div>
               )}
@@ -262,7 +288,7 @@ const UpdateCarPage = () => {
             <button
               type="submit"
               disabled={loading}
-              className="w-full py-4 bg-blue-600 text-white rounded-2xl font-semibold text-lg hover:bg-blue-700 transition-all duration-300 shadow-lg disabled:opacity-60 flex items-center justify-center gap-2"
+              className="w-full py-4 bg-blue-600 text-white rounded-2xl font-semibold text-lg hover:bg-blue-700 transition-all shadow-lg disabled:opacity-60 flex items-center justify-center gap-2"
             >
               {loading ? (
                 <span className="loading loading-spinner loading-sm"></span>

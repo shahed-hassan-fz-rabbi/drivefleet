@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { Car, MapPin, Users, Fuel, DollarSign, Image, FileText } from "lucide-react";
 import toast from "react-hot-toast";
 import { motion } from "framer-motion";
+import axiosInstance from "@/lib/axios";
 
 const carTypes = ["Sedan", "SUV", "Hatchback", "Luxury", "Van", "Pickup"];
 
@@ -31,17 +32,26 @@ const AddCarPage = () => {
     }));
   };
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setLoading(true);
 
-    // পরে server API call আসবে এখানে
-    setTimeout(() => {
-      toast.success("Car added successfully!");
-      setLoading(false);
-      router.push("/my-added-cars");
-    }, 1000);
-  };
+
+const handleSubmit = async (e) => {
+  e.preventDefault();
+  setLoading(true);
+
+  try {
+    await axiosInstance.post("/api/cars", {
+      ...form,
+      dailyPrice: Number(form.dailyPrice),
+      seats: Number(form.seats),
+    });
+    toast.success("Car added successfully!");
+    router.push("/my-added-cars");
+  } catch (error) {
+    toast.error(error.response?.data?.message || "Failed to add car");
+  } finally {
+    setLoading(false);
+  }
+};
 
   return (
     <div className="min-h-screen bg-gray-50 py-10">

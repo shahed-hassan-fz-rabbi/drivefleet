@@ -1,61 +1,56 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Car, MapPin, Users, Fuel, Pencil, Trash2 } from "lucide-react";
 import Link from "next/link";
 import ConfirmDeleteModal from "@/components/ConfirmDeleteModal";
 import toast from "react-hot-toast";
-
-const dummyMyCars = [
-  {
-    _id: "1",
-    name: "Toyota Camry",
-    type: "Sedan",
-    dailyPrice: 45,
-    seats: 5,
-    location: "Dhaka",
-    fuel: "Petrol",
-    image: "https://images.unsplash.com/photo-1621007947382-bb3c3994e3fb?w=400&q=80",
-    available: true,
-    bookingCount: 12,
-  },
-  {
-    _id: "3",
-    name: "BMW 3 Series",
-    type: "Luxury",
-    dailyPrice: 120,
-    seats: 5,
-    location: "Dhaka",
-    fuel: "Petrol",
-    image: "https://images.unsplash.com/photo-1555215695-3004980ad54e?w=400&q=80",
-    available: true,
-    bookingCount: 5,
-  },
-  {
-    _id: "5",
-    name: "Hyundai Tucson",
-    type: "SUV",
-    dailyPrice: 70,
-    seats: 5,
-    location: "Dhaka",
-    fuel: "Petrol",
-    image: "https://images.unsplash.com/photo-1572635196237-14b3f281503f?w=400&q=80",
-    available: false,
-    bookingCount: 3,
-  },
-];
+import axiosInstance from "@/lib/axios";
 
 const MyAddedCarsPage = () => {
-  const [cars, setCars] = useState(dummyMyCars);
+  const [cars, setCars] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [deleteId, setDeleteId] = useState(null);
 
-  const handleDelete = (id) => {
-    // পরে server API call আসবে
-    setCars((prev) => prev.filter((car) => car._id !== id));
-    toast.success("Car deleted successfully");
-    setDeleteId(null);
+  useEffect(() => {
+    const fetchMyCars = async () => {
+      try {
+        const res = await axiosInstance.get("/api/cars/my");
+        setCars(res.data);
+      } catch (error) {
+        toast.error("Failed to load your cars");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchMyCars();
+  }, []);
+
+  const handleDelete = async (id) => {
+    try {
+      await axiosInstance.delete(`/api/cars/${id}`);
+
+      setCars((prev) =>
+        prev.filter((car) => car._id !== id)
+      );
+
+      toast.success("Car deleted successfully");
+    } catch (error) {
+      toast.error("Failed to delete car");
+    } finally {
+      setDeleteId(null);
+    }
   };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <p className="text-lg font-semibold">Loading...</p>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gray-50 py-10">
@@ -68,9 +63,14 @@ const MyAddedCarsPage = () => {
           className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-10"
         >
           <div>
-            <h1 className="text-3xl font-bold text-gray-900">My Added Cars</h1>
-            <p className="text-gray-500 mt-1">Manage your listed vehicles</p>
+            <h1 className="text-3xl font-bold text-gray-900">
+              My Added Cars
+            </h1>
+            <p className="text-gray-500 mt-1">
+              Manage your listed vehicles
+            </p>
           </div>
+
           <Link
             href="/add-car"
             className="inline-flex items-center gap-2 px-6 py-3 bg-blue-600 text-white rounded-full font-semibold hover:bg-blue-700 transition-all duration-300 shadow-lg"
@@ -80,16 +80,19 @@ const MyAddedCarsPage = () => {
           </Link>
         </motion.div>
 
-        {/* Empty state */}
+        {/* Empty State */}
         {cars.length === 0 ? (
           <div className="text-center py-20">
             <p className="text-6xl mb-4">🚗</p>
+
             <h3 className="text-xl font-semibold text-gray-700 mb-2">
               No cars added yet
             </h3>
+
             <p className="text-gray-400 mb-6">
               Start by adding your first car listing
             </p>
+
             <Link
               href="/add-car"
               className="px-6 py-3 bg-blue-600 text-white rounded-full font-semibold hover:bg-blue-700 transition-all"
@@ -114,17 +117,21 @@ const MyAddedCarsPage = () => {
                     alt={car.name}
                     className="w-full h-full object-cover hover:scale-105 transition-transform duration-500"
                   />
+
                   <div className="absolute top-3 left-3">
                     <span className="bg-blue-600 text-white text-xs font-semibold px-3 py-1 rounded-full">
                       {car.type}
                     </span>
                   </div>
+
                   <div className="absolute top-3 right-3">
-                    <span className={`text-xs font-semibold px-3 py-1 rounded-full ${
-                      car.available
-                        ? "bg-green-100 text-green-700"
-                        : "bg-red-100 text-red-700"
-                    }`}>
+                    <span
+                      className={`text-xs font-semibold px-3 py-1 rounded-full ${
+                        car.available
+                          ? "bg-green-100 text-green-700"
+                          : "bg-red-100 text-red-700"
+                      }`}
+                    >
                       {car.available ? "Available" : "Unavailable"}
                     </span>
                   </div>
@@ -141,10 +148,12 @@ const MyAddedCarsPage = () => {
                       <MapPin size={14} className="text-blue-500" />
                       {car.location}
                     </span>
+
                     <span className="flex items-center gap-1">
                       <Users size={14} className="text-blue-500" />
                       {car.seats} seats
                     </span>
+
                     <span className="flex items-center gap-1">
                       <Fuel size={14} className="text-blue-500" />
                       {car.fuel}
@@ -156,14 +165,18 @@ const MyAddedCarsPage = () => {
                       <span className="text-2xl font-bold text-blue-600">
                         ${car.dailyPrice}
                       </span>
-                      <span className="text-gray-400 text-sm">/day</span>
+
+                      <span className="text-gray-400 text-sm">
+                        /day
+                      </span>
                     </div>
+
                     <span className="text-sm text-gray-500">
                       {car.bookingCount} bookings
                     </span>
                   </div>
 
-                  {/* Action Buttons */}
+                  {/* Buttons */}
                   <div className="flex gap-3">
                     <Link
                       href={`/my-added-cars/${car._id}/edit`}
@@ -172,6 +185,7 @@ const MyAddedCarsPage = () => {
                       <Pencil size={16} />
                       Update
                     </Link>
+
                     <button
                       onClick={() => setDeleteId(car._id)}
                       className="flex-1 flex items-center justify-center gap-2 py-2.5 border-2 border-red-400 text-red-500 rounded-xl font-semibold hover:bg-red-50 transition-all duration-300 text-sm"
@@ -187,7 +201,7 @@ const MyAddedCarsPage = () => {
         )}
       </div>
 
-      {/* Confirm Delete Modal */}
+      {/* Delete Modal */}
       {deleteId && (
         <ConfirmDeleteModal
           onConfirm={() => handleDelete(deleteId)}

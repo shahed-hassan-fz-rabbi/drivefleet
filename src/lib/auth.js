@@ -23,4 +23,23 @@ export const auth = betterAuth({
       maxAge: 60 * 60 * 24 * 7,
     },
   },
+  callbacks: {
+    async session({ session, user }) {
+      // Login হলে server এ JWT পাঠাও
+      try {
+        await fetch(`${process.env.NEXT_PUBLIC_SERVER_URL}/api/auth/jwt`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            email: user.email,
+            name: user.name,
+          }),
+          credentials: "include",
+        });
+      } catch (error) {
+        console.error("JWT issue failed:", error);
+      }
+      return session;
+    },
+  },
 });
