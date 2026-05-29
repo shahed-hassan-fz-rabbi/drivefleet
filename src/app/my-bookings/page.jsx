@@ -1,52 +1,12 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Car, Calendar, MapPin, Trash2, Users } from "lucide-react";
+import Link from "next/link";
 import ConfirmDeleteModal from "@/components/ConfirmDeleteModal";
 import toast from "react-hot-toast";
-
-const dummyBookings = [
-  {
-    _id: "b1",
-    carName: "Toyota Camry",
-    carImage: "https://images.unsplash.com/photo-1621007947382-bb3c3994e3fb?w=400&q=80",
-    carType: "Sedan",
-    dailyPrice: 45,
-    totalPrice: 45,
-    driverNeeded: "no",
-    specialNote: "Please have the car ready by 9am",
-    bookingDate: new Date().toISOString(),
-    location: "Dhaka",
-    status: "confirmed",
-  },
-  {
-    _id: "b2",
-    carName: "BMW 3 Series",
-    carImage: "https://images.unsplash.com/photo-1555215695-3004980ad54e?w=400&q=80",
-    carType: "Luxury",
-    dailyPrice: 120,
-    totalPrice: 140,
-    driverNeeded: "yes",
-    specialNote: "",
-    bookingDate: new Date(Date.now() - 86400000).toISOString(),
-    location: "Dhaka",
-    status: "confirmed",
-  },
-  {
-    _id: "b3",
-    carName: "Honda CR-V",
-    carImage: "https://images.unsplash.com/photo-1606664515524-ed2f786a0bd6?w=400&q=80",
-    carType: "SUV",
-    dailyPrice: 65,
-    totalPrice: 65,
-    driverNeeded: "no",
-    specialNote: "Need child seat",
-    bookingDate: new Date(Date.now() - 172800000).toISOString(),
-    location: "Chittagong",
-    status: "pending",
-  },
-];
+import axiosInstance from "@/lib/axios";
 
 const statusStyles = {
   confirmed: "bg-green-100 text-green-700",
@@ -55,21 +15,48 @@ const statusStyles = {
 };
 
 const MyBookingsPage = () => {
-  const [bookings, setBookings] = useState(dummyBookings);
+  const [bookings, setBookings] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [deleteId, setDeleteId] = useState(null);
 
-  const handleCancel = (id) => {
-    // পরে server API call আসবে
-    setBookings((prev) => prev.filter((b) => b._id !== id));
-    toast.success("Booking cancelled successfully");
-    setDeleteId(null);
+  useEffect(() => {
+    const fetchBookings = async () => {
+      try {
+        const res = await axiosInstance.get("/api/bookings/my");
+        setBookings(res.data);
+      } catch (error) {
+        toast.error("Failed to load bookings");
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchBookings();
+  }, []);
+
+  const handleCancel = async (id) => {
+    try {
+      await axiosInstance.delete(`/api/bookings/${id}`);
+      setBookings((prev) => prev.filter((b) => b._id !== id));
+      toast.success("Booking cancelled");
+    } catch (error) {
+      toast.error("Failed to cancel booking");
+    } finally {
+      setDeleteId(null);
+    }
   };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <span className="loading loading-spinner loading-lg text-blue-600"></span>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gray-50 py-10">
       <div className="max-w-5xl mx-auto px-4 lg:px-8">
 
-        {/* Header */}
         <motion.div
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -79,7 +66,6 @@ const MyBookingsPage = () => {
           <p className="text-gray-500 mt-1">Track and manage your car bookings</p>
         </motion.div>
 
-        {/* Empty state */}
         {bookings.length === 0 ? (
           <div className="text-center py-20">
             <p className="text-6xl mb-4">📋</p>
@@ -89,12 +75,12 @@ const MyBookingsPage = () => {
             <p className="text-gray-400 mb-6">
               Browse our cars and make your first booking
             </p>
-            
+            <Link
               href="/cars"
               className="px-6 py-3 bg-blue-600 text-white rounded-full font-semibold hover:bg-blue-700 transition-all"
             >
               Explore Cars
-            </a>
+            </Link>
           </div>
         ) : (
           <div className="space-y-6">
@@ -108,7 +94,6 @@ const MyBookingsPage = () => {
               >
                 <div className="flex flex-col sm:flex-row">
 
-                  {/* Car Image */}
                   <div className="sm:w-48 h-40 sm:h-auto overflow-hidden flex-shrink-0">
                     <img
                       src={booking.carImage}
@@ -117,7 +102,6 @@ const MyBookingsPage = () => {
                     />
                   </div>
 
-                  {/* Details */}
                   <div className="flex-1 p-5">
                     <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3 mb-3">
                       <div>
@@ -128,8 +112,10 @@ const MyBookingsPage = () => {
                           {booking.carType}
                         </span>
                       </div>
-                      <span className={`text-xs font-semibold px-3 py-1.5 rounded-full self-start ${statusStyles[booking.status]}`}>
-                        {booking.status.charAt(0).toUpperCase() + booking.status.slice(1)}
+                      <span className={`text-xs font-semibold px-3 py-1.5 rounded-full self-start ${statusStyles[booking.status] || statusStyles.confirmed}`}>
+                        {booking.status
+                          ? booking.status.charAt(0).toUpperCase() + booking.status.slice(1)
+                          : "Confirmed"}
                       </span>
                     </div>
 
@@ -166,7 +152,6 @@ const MyBookingsPage = () => {
                       </div>
                     )}
 
-                    {/* Cancel button */}
                     <button
                       onClick={() => setDeleteId(booking._id)}
                       className="flex items-center gap-2 px-4 py-2 border-2 border-red-400 text-red-500 rounded-xl text-sm font-semibold hover:bg-red-50 transition-all duration-300"
