@@ -2,14 +2,16 @@ import { betterAuth } from "better-auth";
 import { mongodbAdapter } from "@better-auth/mongo-adapter";
 import { MongoClient } from "mongodb";
 
-const client = new MongoClient(process.env.MONGODB_URI);
-
 let authInstance = null;
+let mongoClient = null;
 
-const getAuth = async () => {
+export const getAuth = async () => {
   if (authInstance) return authInstance;
-  await client.connect();
-  const db = client.db("drivefleet");
+
+  mongoClient = new MongoClient(process.env.MONGODB_URI);
+  await mongoClient.connect();
+  const db = mongoClient.db("drivefleet");
+
   authInstance = betterAuth({
     database: mongodbAdapter(db),
     emailAndPassword: {
@@ -28,7 +30,6 @@ const getAuth = async () => {
       },
     },
   });
+
   return authInstance;
 };
-
-export { getAuth };
